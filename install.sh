@@ -3,51 +3,42 @@
 set -euo pipefail
 
 APP_DIR_DEFAULT="/opt/3xui-subscription-manager"
+APP_PORT="3000"
 DOMAIN=""
-EMAIL=""
 APP_DIR="${APP_DIR_DEFAULT}"
-HTTP_PORT="${HTTP_PORT:-80}"
-HTTPS_PORT="${HTTPS_PORT:-443}"
-TLS_MODE="${TLS_MODE:-letsencrypt}"
+
+usage() {
+  cat <<EOF
+Usage:
+  sudo ./install.sh DOMAIN [options]
+
+Options:
+  --app-dir PATH       Install directory. Default: /opt/3xui-subscription-manager
+  --help, -h           Show this help message
+
+Notes:
+  - The service is exposed only over HTTPS on port 3000.
+  - Caddy uses an internal self-signed certificate.
+  - For a publicly trusted certificate you need a separate setup on port 443.
+EOF
+}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --http-port)
-      HTTP_PORT="${2:-}"
-      shift 2
-      ;;
-    --https-port)
-      HTTPS_PORT="${2:-}"
-      shift 2
-      ;;
-    --tls-mode)
-      TLS_MODE="${2:-}"
-      shift 2
-      ;;
     --app-dir)
       APP_DIR="${2:-}"
       shift 2
       ;;
     --help|-h)
-      cat <<EOF
-Usage:
-  sudo ./install.sh DOMAIN EMAIL [options]
-
-Options:
-  --http-port PORT     External HTTP port. Default: 80
-  --https-port PORT    External HTTPS port. Default: 443
-  --tls-mode MODE      letsencrypt | internal. Default: letsencrypt
-  --app-dir PATH       Install directory. Default: /opt/3xui-subscription-manager
-EOF
+      usage
       exit 0
       ;;
     *)
       if [[ -z "${DOMAIN}" ]]; then
         DOMAIN="$1"
-      elif [[ -z "${EMAIL}" ]]; then
-        EMAIL="$1"
       else
         echo "Unknown argument: $1"
+        usage
         exit 1
       fi
       shift
@@ -64,22 +55,8 @@ if [[ -z "${DOMAIN}" ]]; then
   read -r -p "Domain for the app (example: sub.example.com): " DOMAIN
 fi
 
-if [[ -z "${EMAIL}" ]]; then
-  read -r -p "Email for certificate notices: " EMAIL
-fi
-
-if [[ -z "${DOMAIN}" || -z "${EMAIL}" ]]; then
-  echo "Domain and email are required."
-  exit 1
-fi
-
-if [[ ! "${HTTP_PORT}" =~ ^[0-9]+$ || ! "${HTTPS_PORT}" =~ ^[0-9]+$ ]]; then
-  echo "HTTP_PORT and HTTPS_PORT must be numeric."
-  exit 1
-fi
-
-if [[ "${TLS_MODE}" != "letsencrypt" && "${TLS_MODE}" != "internal" ]]; then
-  echo "TLS_MODE must be either 'letsencrypt' or 'internal'."
+if [[ -z "${DOMAIN}" ]]; then
+  echo "Domain is required."
   exit 1
 fi
 
@@ -121,41 +98,28 @@ port_in_use() {
   ss -ltn "( sport = :${port} )" | tail -n +2 | grep -q .
 }
 
-check_ports() {
-  local failed=0
-
-  if port_in_use "${HTTP_PORT}"; then
-    echo "Port ${HTTP_PORT} is already in use."
-    failed=1
-  fi
-
-  if port_in_use "${HTTPS_PORT}"; then
-    echo "Port ${HTTPS_PORT} is already in use."
-    failed=1
-  fi
-
-  if [[ "${failed}" -eq 1 ]]; then
-    echo
-    echo "Choose free ports and run again, for example:"
-    echo "  sudo ./install.sh ${DOMAIN} ${EMAIL} --http-port 3000 --https-port 3030 --tls-mode internal"
+check_port() {
+  if port_in_use "${APP_PORT}"; then
+    echo "Port ${APP_PORT} is already in use."
+    echo "Free port ${APP_PORT} before installation. The current deployment is HTTPS-only on this port."
     exit 1
+  fi
+}
+
+stop_existing_deployment() {
+  if [[ -f "${APP_DIR}/docker-compose.yml" ]]; then
+    (
+      cd "${APP_DIR}"
+      docker compose down --remove-orphans >/dev/null 2>&1 || true
+    )
   fi
 }
 
 check_dns() {
   if command -v getent >/dev/null 2>&1; then
     if ! getent ahosts "${DOMAIN}" >/dev/null 2>&1; then
-      echo "Warning: ${DOMAIN} does not resolve yet. Certificate issuance may fail until DNS points to this server."
-    fi
-  fi
-}
-
-validate_tls_mode() {
-  if [[ "${TLS_MODE}" == "letsencrypt" ]]; then
-    if [[ "${HTTP_PORT}" != "80" || "${HTTPS_PORT}" != "443" ]]; then
-      echo "TLS_MODE=letsencrypt is supported only with HTTP_PORT=80 and HTTPS_PORT=443."
-      echo "For custom ports use TLS_MODE=internal, or free ports 80/443 for public certificates."
-      exit 1
+      echo "Warning: ${DOMAIN} does not resolve yet."
+      echo "The service will still start, but you should point the domain to this VPS before using it."
     fi
   fi
 }
@@ -163,41 +127,12 @@ validate_tls_mode() {
 write_env_file() {
   cat > .env <<EOF
 DOMAIN=${DOMAIN}
-EMAIL=${EMAIL}
-HTTP_PORT=${HTTP_PORT}
-HTTPS_PORT=${HTTPS_PORT}
-TLS_MODE=${TLS_MODE}
 EOF
 }
 
 generate_caddyfile() {
-  if [[ "${TLS_MODE}" == "letsencrypt" ]]; then
-    cat > Caddyfile <<EOF
-{
-	email ${EMAIL}
-}
-
-${DOMAIN} {
-	encode gzip zstd
-
-	header {
-		X-Content-Type-Options nosniff
-		X-Frame-Options SAMEORIGIN
-		Referrer-Policy strict-origin-when-cross-origin
-	}
-
-	reverse_proxy app:3000
-}
-EOF
-    return
-  fi
-
   cat > Caddyfile <<EOF
-{
-	email ${EMAIL}
-}
-
-http://${DOMAIN}:${HTTP_PORT}, https://${DOMAIN}:${HTTPS_PORT} {
+https://${DOMAIN}:${APP_PORT} {
 	encode gzip zstd
 
 	header {
@@ -214,9 +149,9 @@ EOF
 }
 
 install_docker
-validate_tls_mode
 check_dns
-check_ports
+stop_existing_deployment
+check_port
 
 mkdir -p "${APP_DIR}"
 cp -R . "${APP_DIR}"
@@ -234,14 +169,8 @@ docker compose up -d --build
 
 echo
 echo "Deployment completed."
-if [[ "${TLS_MODE}" == "letsencrypt" ]]; then
-  echo "App URL: https://${DOMAIN}"
-  echo "Public TLS: enabled via Let's Encrypt."
-else
-  echo "App URL (HTTP): http://${DOMAIN}:${HTTP_PORT}"
-  echo "App URL (HTTPS): https://${DOMAIN}:${HTTPS_PORT}"
-  echo "TLS mode: internal self-signed certificate."
-  echo "Browsers and clients may require certificate trust confirmation."
-fi
+echo "App URL: https://${DOMAIN}:${APP_PORT}"
+echo "HTTPS is enabled with a Caddy internal certificate."
+echo "Browsers and clients may ask you to trust the certificate."
 echo "View logs:"
 echo "  cd ${APP_DIR} && docker compose logs -f"

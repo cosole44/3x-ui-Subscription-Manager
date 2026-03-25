@@ -27,20 +27,18 @@ deno task start
 
 Ниже сценарий для `Debian 12` или `Ubuntu 22.04/24.04`.
 
-### Что важно про порты и HTTPS
+### Как теперь работает установка
 
-Есть два режима установки:
+- наружу публикуется только `HTTPS` на порту `3000`
+- `HTTP` не используется
+- `Caddy` выдает внутренний self-signed сертификат через `tls internal`
+- домен нужен как стабильное имя сервиса
 
-1. `TLS_MODE=letsencrypt`
-   Использует публичный SSL от Let's Encrypt.
-   Для этого нужны свободные порты `80` и `443`.
+Важно:
 
-2. `TLS_MODE=internal`
-   Использует `Caddy` с внутренним self-signed сертификатом.
-   Можно запускать на любых свободных портах, например `3000` и `3030`.
-   Такой HTTPS будет работать технически, но браузер или клиент могут попросить подтвердить доверие к сертификату.
-
-Если на сервере `80` и `443` заняты под VLESS или другой сервис, для быстрого запуска используйте `TLS_MODE=internal`.
+- это не публичный сертификат Let's Encrypt
+- браузер или клиент могут попросить подтвердить доверие к сертификату
+- если понадобится публично доверенный сертификат, это уже отдельная схема через `443` или DNS challenge
 
 ### 1. Подготовьте домен
 
@@ -50,7 +48,7 @@ deno task start
 Пример:
 
 ```text
-subs.netherlands.guardport.online -> 203.0.113.10
+sub.example.com -> 203.0.113.10
 ```
 
 ### 2. Подключитесь к VPS
@@ -67,37 +65,19 @@ git clone https://github.com/cosole44/3x-ui-Subscription-Manager.git
 cd 3x-ui-Subscription-Manager
 ```
 
-### 4. Выберите режим установки
+### 4. Запустите установку
 
-#### Вариант A. Публичный SSL через Let's Encrypt
-
-Подходит только если свободны `80` и `443`.
+Проект использует один режим установки:
 
 ```bash
 chmod +x install.sh
-sudo ./install.sh subs.netherlands.guardport.online admin@example.com
+sudo ./install.sh sub.example.com
 ```
 
-После установки:
+После установки сервис будет доступен по адресу:
 
 ```text
-https://subs.netherlands.guardport.online
-```
-
-#### Вариант B. Кастомные порты `3000` и `3030`
-
-Подходит, если `80/443` уже заняты.
-
-```bash
-chmod +x install.sh
-sudo ./install.sh subs.netherlands.guardport.online admin@example.com --http-port 3000 --https-port 3030 --tls-mode internal
-```
-
-После установки:
-
-```text
-http://subs.netherlands.guardport.online:3000
-https://subs.netherlands.guardport.online:3030
+https://sub.example.com:3000
 ```
 
 ### 5. Ссылка подписки
@@ -105,19 +85,13 @@ https://subs.netherlands.guardport.online:3030
 Для клиента `PC`:
 
 ```text
-https://subs.netherlands.guardport.online/subscribe/PC
-```
-
-Если используется кастомный HTTPS-порт:
-
-```text
-https://subs.netherlands.guardport.online:3030/subscribe/PC
+https://sub.example.com:3000/subscribe/PC
 ```
 
 Raw-формат:
 
 ```text
-https://subs.netherlands.guardport.online/subscribe/PC?format=raw
+https://sub.example.com:3000/subscribe/PC?format=raw
 ```
 
 ### 6. Полезные команды
@@ -155,8 +129,8 @@ docker compose down
 ## Ручной запуск через Docker Compose
 
 1. Создайте `.env` на основе [.env.example](/Users/oleg/Documents/New%20project/.env.example).
-2. Укажите `DOMAIN`, `EMAIL`, `HTTP_PORT`, `HTTPS_PORT`, `TLS_MODE`.
-3. Сгенерируйте `Caddyfile` в соответствии с выбранным режимом.
+2. Укажите `DOMAIN`.
+3. Убедитесь, что [Caddyfile](/Users/oleg/Documents/New%20project/Caddyfile) настроен на `https://DOMAIN:3000`.
 4. Запустите:
 
 ```bash

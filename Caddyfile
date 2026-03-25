@@ -1,8 +1,4 @@
-{
-	email {$EMAIL}
-}
-
-{$DOMAIN} {
+https://{$DOMAIN}:3000 {
 	encode gzip zstd
 
 	header {
@@ -10,6 +6,8 @@
 		X-Frame-Options SAMEORIGIN
 		Referrer-Policy strict-origin-when-cross-origin
 	}
+
+	tls internal
 
 	reverse_proxy app:3000
 }

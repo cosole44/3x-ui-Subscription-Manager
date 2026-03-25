@@ -127,21 +127,46 @@ EOF
 }
 
 generate_caddyfile() {
-  local site_label
-  local tls_block=""
-
   if [[ "${TLS_MODE}" == "letsencrypt" ]]; then
-    site_label="${DOMAIN}"
-  else
-    site_label="http://${DOMAIN}:${HTTP_PORT}, https://${DOMAIN}:${HTTPS_PORT}"
-    tls_block=$'\ttls internal\n\n'
+    cat > Caddyfile <<EOF
+{
+	email ${EMAIL}
+}
+
+${DOMAIN} {
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	reverse_proxy app:3000
+}
+EOF
+    return
   fi
 
-  sed \
-    -e "s|{{EMAIL}}|${EMAIL}|g" \
-    -e "s|{{SITE_LABEL}}|${site_label}|g" \
-    -e "s|{{TLS_BLOCK}}|${tls_block}|g" \
-    Caddyfile.template > Caddyfile
+  cat > Caddyfile <<EOF
+{
+	email ${EMAIL}
+}
+
+http://${DOMAIN}:${HTTP_PORT}, https://${DOMAIN}:${HTTPS_PORT} {
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	tls internal
+
+	reverse_proxy app:3000
+}
+EOF
 }
 
 install_docker

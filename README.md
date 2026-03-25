@@ -30,6 +30,105 @@ deno task start
 - `app` с Deno-приложением
 - `caddy` как reverse proxy с автоматическим выпуском SSL-сертификата
 
+## Установка на VPS
+
+Ниже сценарий для чистого VPS с `Debian 12` или `Ubuntu 22.04/24.04`.
+
+### 1. Подготовьте домен
+
+- создайте `A` запись для домена или поддомена
+- направьте ее на публичный IP вашего VPS
+- дождитесь, пока домен начнет открываться по IP сервера
+
+Пример:
+
+```text
+vpn-sub.example.com -> 203.0.113.10
+```
+
+### 2. Подключитесь к серверу
+
+```bash
+ssh root@YOUR_SERVER_IP
+```
+
+Если вы работаете не под `root`, то используйте пользователя с `sudo`.
+
+### 3. Склонируйте репозиторий
+
+```bash
+apt update && apt install -y git
+git clone https://github.com/cosole44/3x-ui-Subscription-Manager.git
+cd 3x-ui-Subscription-Manager
+```
+
+### 4. Запустите установку
+
+```bash
+chmod +x install.sh
+sudo ./install.sh vpn-sub.example.com admin@example.com
+```
+
+Скрипт автоматически:
+
+- установит Docker Engine и Docker Compose plugin, если их еще нет
+- скопирует проект в `/opt/3xui-subscription-manager`
+- создаст файл `.env` с доменом и email
+- запустит приложение и reverse proxy
+- запросит SSL-сертификат Let's Encrypt
+
+### 5. Проверьте запуск
+
+После установки откройте:
+
+```text
+https://vpn-sub.example.com
+```
+
+Готовая ссылка подписки для клиента `PC`:
+
+```text
+https://vpn-sub.example.com/subscribe/PC
+```
+
+Если сертификат не выдался сразу:
+
+- проверьте, что домен уже смотрит на нужный IP
+- убедитесь, что порты `80` и `443` открыты в firewall провайдера и на сервере
+- подождите 30-60 секунд и проверьте логи
+
+### 6. Полезные команды на VPS
+
+Перейти в каталог установки:
+
+```bash
+cd /opt/3xui-subscription-manager
+```
+
+Посмотреть логи:
+
+```bash
+docker compose logs -f
+```
+
+Перезапустить сервис:
+
+```bash
+docker compose restart
+```
+
+Обновить сервис после `git pull`:
+
+```bash
+docker compose up -d --build
+```
+
+Остановить сервис:
+
+```bash
+docker compose down
+```
+
 ### Что нужно перед установкой
 
 - сервер с Debian или Ubuntu

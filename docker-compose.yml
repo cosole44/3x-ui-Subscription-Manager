@@ -1,3 +1,5 @@
+name: 3xui_subscription_manager
+
 services:
   app:
     build:

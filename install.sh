@@ -3,9 +3,11 @@
 set -euo pipefail
 
 APP_DIR_DEFAULT="/opt/3xui-subscription-manager"
+BACKUP_DIR_DEFAULT="/opt/3xui-subscription-manager-backups"
 APP_PORT="3000"
 DOMAIN=""
 APP_DIR="${APP_DIR_DEFAULT}"
+BACKUP_DIR="${BACKUP_DIR_DEFAULT}"
 
 usage() {
   cat <<EOF
@@ -14,6 +16,7 @@ Usage:
 
 Options:
   --app-dir PATH       Install directory. Default: /opt/3xui-subscription-manager
+  --backup-dir PATH    Backup directory. Default: /opt/3xui-subscription-manager-backups
   --help, -h           Show this help message
 
 Notes:
@@ -27,6 +30,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --app-dir)
       APP_DIR="${2:-}"
+      shift 2
+      ;;
+    --backup-dir)
+      BACKUP_DIR="${2:-}"
       shift 2
       ;;
     --help|-h)
@@ -110,9 +117,46 @@ stop_existing_deployment() {
   if [[ -f "${APP_DIR}/docker-compose.yml" ]]; then
     (
       cd "${APP_DIR}"
-      docker compose down --remove-orphans >/dev/null 2>&1 || true
+      docker compose down --volumes --remove-orphans --rmi local >/dev/null 2>&1 || true
     )
   fi
+
+  docker rm -f 3xui-subscription-manager-app 3xui-subscription-manager-caddy >/dev/null 2>&1 || true
+  docker volume rm 3xui_subscription_manager_caddy_data 3xui_subscription_manager_caddy_config >/dev/null 2>&1 || true
+}
+
+backup_existing_data() {
+  local sources_file="${APP_DIR}/data/sources.json"
+
+  if [[ -f "${sources_file}" ]]; then
+    mkdir -p "${BACKUP_DIR}"
+    cp "${sources_file}" "${BACKUP_DIR}/sources-$(date +%Y%m%d-%H%M%S).json"
+  fi
+}
+
+recreate_install_dir() {
+  rm -rf "${APP_DIR}"
+  mkdir -p "${APP_DIR}"
+}
+
+export_root_certificate() {
+  local cert_dir="${APP_DIR}/certs"
+  local cert_path="${cert_dir}/caddy-local-root.crt"
+  local attempts=10
+
+  mkdir -p "${cert_dir}"
+
+  while (( attempts > 0 )); do
+    if docker cp 3xui-subscription-manager-caddy:/data/caddy/pki/authorities/local/root.crt "${cert_path}" >/dev/null 2>&1; then
+      echo "Local root certificate exported to: ${cert_path}"
+      return
+    fi
+
+    attempts=$((attempts - 1))
+    sleep 1
+  done
+
+  echo "Warning: could not export Caddy root certificate automatically."
 }
 
 check_dns() {
@@ -150,10 +194,11 @@ EOF
 
 install_docker
 check_dns
+backup_existing_data
 stop_existing_deployment
 check_port
 
-mkdir -p "${APP_DIR}"
+recreate_install_dir
 cp -R . "${APP_DIR}"
 cd "${APP_DIR}"
 
@@ -166,11 +211,16 @@ if [[ ! -f data/sources.json ]]; then
 fi
 
 docker compose up -d --build
+export_root_certificate
 
 echo
 echo "Deployment completed."
 echo "App URL: https://${DOMAIN}:${APP_PORT}"
 echo "HTTPS is enabled with a Caddy internal certificate."
 echo "Browsers and clients may ask you to trust the certificate."
+echo "If you want to remove certificate warnings, install:"
+echo "  ${APP_DIR}/certs/caddy-local-root.crt"
+echo "HTTP on port ${APP_PORT} is not supported. Use only:"
+echo "  https://${DOMAIN}:${APP_PORT}"
 echo "View logs:"
 echo "  cd ${APP_DIR} && docker compose logs -f"

@@ -3,18 +3,62 @@
 set -euo pipefail
 
 APP_DIR_DEFAULT="/opt/3xui-subscription-manager"
+DOMAIN=""
+EMAIL=""
+APP_DIR="${APP_DIR_DEFAULT}"
+HTTP_PORT="${HTTP_PORT:-80}"
+HTTPS_PORT="${HTTPS_PORT:-443}"
+TLS_MODE="${TLS_MODE:-letsencrypt}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --http-port)
+      HTTP_PORT="${2:-}"
+      shift 2
+      ;;
+    --https-port)
+      HTTPS_PORT="${2:-}"
+      shift 2
+      ;;
+    --tls-mode)
+      TLS_MODE="${2:-}"
+      shift 2
+      ;;
+    --app-dir)
+      APP_DIR="${2:-}"
+      shift 2
+      ;;
+    --help|-h)
+      cat <<EOF
+Usage:
+  sudo ./install.sh DOMAIN EMAIL [options]
+
+Options:
+  --http-port PORT     External HTTP port. Default: 80
+  --https-port PORT    External HTTPS port. Default: 443
+  --tls-mode MODE      letsencrypt | internal. Default: letsencrypt
+  --app-dir PATH       Install directory. Default: /opt/3xui-subscription-manager
+EOF
+      exit 0
+      ;;
+    *)
+      if [[ -z "${DOMAIN}" ]]; then
+        DOMAIN="$1"
+      elif [[ -z "${EMAIL}" ]]; then
+        EMAIL="$1"
+      else
+        echo "Unknown argument: $1"
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Run this script as root."
   exit 1
 fi
-
-DOMAIN="${1:-}"
-EMAIL="${2:-}"
-APP_DIR="${3:-${APP_DIR_DEFAULT}}"
-HTTP_PORT="${HTTP_PORT:-80}"
-HTTPS_PORT="${HTTPS_PORT:-443}"
-TLS_MODE="${TLS_MODE:-letsencrypt}"
 
 if [[ -z "${DOMAIN}" ]]; then
   read -r -p "Domain for the app (example: sub.example.com): " DOMAIN
@@ -93,7 +137,7 @@ check_ports() {
   if [[ "${failed}" -eq 1 ]]; then
     echo
     echo "Choose free ports and run again, for example:"
-    echo "  HTTP_PORT=3000 HTTPS_PORT=3030 TLS_MODE=internal sudo ./install.sh ${DOMAIN} ${EMAIL}"
+    echo "  sudo ./install.sh ${DOMAIN} ${EMAIL} --http-port 3000 --https-port 3030 --tls-mode internal"
     exit 1
   fi
 }

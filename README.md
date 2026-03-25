@@ -90,7 +90,7 @@ https://subs.netherlands.guardport.online
 
 ```bash
 chmod +x install.sh
-HTTP_PORT=3000 HTTPS_PORT=3030 TLS_MODE=internal sudo ./install.sh subs.netherlands.guardport.online admin@example.com
+sudo ./install.sh subs.netherlands.guardport.online admin@example.com --http-port 3000 --https-port 3030 --tls-mode internal
 ```
 
 После установки:

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3x-ui Subscription Manager</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">3x-ui Aggregator</p>
+        <h1>Одна подписка вместо набора разрозненных панелей</h1>
+        <p class="hero-copy">
+          Добавьте все серверы 3x-ui, укажите имя клиента и получите единую подписку
+          для импорта в VPN-клиент на телефоне или компьютере.
+        </p>
+      </header>
+
+      <main class="layout">
+        <section class="card">
+          <div class="card-head">
+            <h2>Источник подписки</h2>
+            <p>Для каждого сервера сохраняется шаблон ссылки вида `https://domain:port/path/USERNAME`.</p>
+          </div>
+
+          <form id="source-form" class="stack">
+            <input type="hidden" id="source-id" />
+            <label>
+              <span>Название</span>
+              <input id="name" name="name" placeholder="Moscow VPS" required />
+            </label>
+            <label>
+              <span>Домен</span>
+              <input id="domain" name="domain" placeholder="moscow.guardport.ru" required />
+            </label>
+            <label>
+              <span>Порт</span>
+              <input id="port" name="port" inputmode="numeric" placeholder="442" required />
+            </label>
+            <label>
+              <span>Path / токен</span>
+              <input id="path" name="path" placeholder="0D6c7e56113562d1b86c1db3572c1e23" required />
+            </label>
+
+            <div class="actions">
+              <button type="submit" class="primary" id="save-button">Сохранить сервер</button>
+              <button type="button" class="ghost hidden" id="cancel-edit">Отмена</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Итоговая подписка</h2>
+            <p>Введите имя клиента из конца ссылки, например `PC`, и соберите конфиги со всех серверов.</p>
+          </div>
+
+          <form id="aggregate-form" class="stack compact">
+            <label>
+              <span>Имя клиента</span>
+              <input id="username" name="username" placeholder="PC" required />
+            </label>
+            <button type="submit" class="primary">Собрать подписку</button>
+          </form>
+
+          <div id="subscription-panel" class="result hidden">
+            <div class="result-grid">
+              <div>
+                <p class="result-label">Общая ссылка</p>
+                <a id="subscription-link" href="#" target="_blank" rel="noreferrer"></a>
+              </div>
+              <div>
+                <p class="result-label">Собрано конфигов</p>
+                <strong id="total-configs">0</strong>
+              </div>
+            </div>
+
+            <label>
+              <span>Содержимое подписки</span>
+              <textarea id="raw-output" rows="10" readonly></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card wide">
+          <div class="card-head">
+            <h2>Список серверов</h2>
+            <p>Приложение опрашивает каждый сервер по шаблону и объединяет найденные `vless://` ссылки без дублей.</p>
+          </div>
+
+          <div id="sources-list" class="sources-list"></div>
+        </section>
+
+        <section class="card wide">
+          <div class="card-head">
+            <h2>Статус агрегации</h2>
+            <p>Здесь видно, какие сервера ответили и сколько конфигов пришло от каждого источника.</p>
+          </div>
+
+          <div id="status-list" class="status-list empty">Пока нет данных. Выполните сборку подписки.</div>
+        </section>
+      </main>
+    </div>
+
+    <template id="source-item-template">
+      <article class="source-item">
+        <div>
+          <h3 class="source-name"></h3>
+          <p class="source-meta"></p>
+          <code class="source-url"></code>
+        </div>
+        <div class="row-actions">
+          <button class="ghost edit-source">Изменить</button>
+          <button class="danger delete-source">Удалить</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="status-item-template">
+      <article class="status-item">
+        <div>
+          <h3 class="status-name"></h3>
+          <p class="status-url"></p>
+        </div>
+        <div class="status-badge"></div>
+      </article>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+{
+	email {{EMAIL}}
+}
+
+{{SITE_LABEL}} {
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+{{TLS_BLOCK}}	reverse_proxy app:3000
+}

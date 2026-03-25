@@ -11,7 +11,7 @@
 - убирает дубли конфигов
 - отдает общую подписку по URL `/subscribe/:username`
 - показывает статус по каждому источнику в браузере
-- поддерживает production-развертывание через Docker с HTTPS
+- поддерживает production-развертывание через Docker и Caddy
 
 ## Локальный запуск
 
@@ -23,36 +23,41 @@ deno task start
 
 После запуска приложение доступно на [http://localhost:3000](http://localhost:3000).
 
-## Production в Docker
-
-Стек состоит из двух контейнеров:
-
-- `app` с Deno-приложением
-- `caddy` как reverse proxy с автоматическим выпуском SSL-сертификата
-
 ## Установка на VPS
 
-Ниже сценарий для чистого VPS с `Debian 12` или `Ubuntu 22.04/24.04`.
+Ниже сценарий для `Debian 12` или `Ubuntu 22.04/24.04`.
+
+### Что важно про порты и HTTPS
+
+Есть два режима установки:
+
+1. `TLS_MODE=letsencrypt`
+   Использует публичный SSL от Let's Encrypt.
+   Для этого нужны свободные порты `80` и `443`.
+
+2. `TLS_MODE=internal`
+   Использует `Caddy` с внутренним self-signed сертификатом.
+   Можно запускать на любых свободных портах, например `3000` и `3030`.
+   Такой HTTPS будет работать технически, но браузер или клиент могут попросить подтвердить доверие к сертификату.
+
+Если на сервере `80` и `443` заняты под VLESS или другой сервис, для быстрого запуска используйте `TLS_MODE=internal`.
 
 ### 1. Подготовьте домен
 
 - создайте `A` запись для домена или поддомена
 - направьте ее на публичный IP вашего VPS
-- дождитесь, пока домен начнет открываться по IP сервера
 
 Пример:
 
 ```text
-vpn-sub.example.com -> 203.0.113.10
+subs.netherlands.guardport.online -> 203.0.113.10
 ```
 
-### 2. Подключитесь к серверу
+### 2. Подключитесь к VPS
 
 ```bash
 ssh root@YOUR_SERVER_IP
 ```
-
-Если вы работаете не под `root`, то используйте пользователя с `sudo`.
 
 ### 3. Склонируйте репозиторий
 
@@ -62,128 +67,100 @@ git clone https://github.com/cosole44/3x-ui-Subscription-Manager.git
 cd 3x-ui-Subscription-Manager
 ```
 
-### 4. Запустите установку
+### 4. Выберите режим установки
+
+#### Вариант A. Публичный SSL через Let's Encrypt
+
+Подходит только если свободны `80` и `443`.
 
 ```bash
 chmod +x install.sh
-sudo ./install.sh vpn-sub.example.com admin@example.com
+sudo ./install.sh subs.netherlands.guardport.online admin@example.com
 ```
 
-Скрипт автоматически:
-
-- установит Docker Engine и Docker Compose plugin, если их еще нет
-- скопирует проект в `/opt/3xui-subscription-manager`
-- создаст файл `.env` с доменом и email
-- запустит приложение и reverse proxy
-- запросит SSL-сертификат Let's Encrypt
-
-### 5. Проверьте запуск
-
-После установки откройте:
+После установки:
 
 ```text
-https://vpn-sub.example.com
+https://subs.netherlands.guardport.online
 ```
 
-Готовая ссылка подписки для клиента `PC`:
+#### Вариант B. Кастомные порты `3000` и `3030`
+
+Подходит, если `80/443` уже заняты.
+
+```bash
+chmod +x install.sh
+HTTP_PORT=3000 HTTPS_PORT=3030 TLS_MODE=internal sudo ./install.sh subs.netherlands.guardport.online admin@example.com
+```
+
+После установки:
 
 ```text
-https://vpn-sub.example.com/subscribe/PC
+http://subs.netherlands.guardport.online:3000
+https://subs.netherlands.guardport.online:3030
 ```
 
-Если сертификат не выдался сразу:
+### 5. Ссылка подписки
 
-- проверьте, что домен уже смотрит на нужный IP
-- убедитесь, что порты `80` и `443` открыты в firewall провайдера и на сервере
-- подождите 30-60 секунд и проверьте логи
+Для клиента `PC`:
 
-### 6. Полезные команды на VPS
+```text
+https://subs.netherlands.guardport.online/subscribe/PC
+```
 
-Перейти в каталог установки:
+Если используется кастомный HTTPS-порт:
+
+```text
+https://subs.netherlands.guardport.online:3030/subscribe/PC
+```
+
+Raw-формат:
+
+```text
+https://subs.netherlands.guardport.online/subscribe/PC?format=raw
+```
+
+### 6. Полезные команды
+
+Каталог установки:
 
 ```bash
 cd /opt/3xui-subscription-manager
 ```
 
-Посмотреть логи:
+Логи:
 
 ```bash
 docker compose logs -f
 ```
 
-Перезапустить сервис:
+Перезапуск:
 
 ```bash
 docker compose restart
 ```
 
-Обновить сервис после `git pull`:
+Обновление после изменения кода:
 
 ```bash
 docker compose up -d --build
 ```
 
-Остановить сервис:
+Остановка:
 
 ```bash
 docker compose down
 ```
 
-### Что нужно перед установкой
-
-- сервер с Debian или Ubuntu
-- домен или поддомен, который уже указывает на IP сервера
-- открытые порты `80` и `443`
-
-### Быстрая установка
-
-Скопируйте проект на сервер и выполните:
-
-```bash
-chmod +x install.sh
-sudo ./install.sh vpn-sub.example.com admin@example.com
-```
-
-Скрипт:
-
-- установит Docker и Docker Compose plugin, если их нет
-- скопирует проект в `/opt/3xui-subscription-manager`
-- создаст `.env`
-- поднимет контейнеры
-- включит HTTPS через Let's Encrypt
-
-После установки приложение будет доступно по адресу:
-
-```text
-https://vpn-sub.example.com
-```
-
-И общая подписка для пользователя `PC` будет доступна по адресу:
-
-```text
-https://vpn-sub.example.com/subscribe/PC
-```
-
-Если нужен raw-текст без base64:
-
-```text
-https://vpn-sub.example.com/subscribe/PC?format=raw
-```
-
 ## Ручной запуск через Docker Compose
 
 1. Создайте `.env` на основе [.env.example](/Users/oleg/Documents/New%20project/.env.example).
-2. Укажите `DOMAIN` и `EMAIL`.
-3. Запустите:
+2. Укажите `DOMAIN`, `EMAIL`, `HTTP_PORT`, `HTTPS_PORT`, `TLS_MODE`.
+3. Сгенерируйте `Caddyfile` в соответствии с выбранным режимом.
+4. Запустите:
 
 ```bash
 docker compose up -d --build
-```
-
-4. Посмотрите логи:
-
-```bash
-docker compose logs -f
 ```
 
 ## Где лежат данные
@@ -195,11 +172,3 @@ data/sources.json
 ```
 
 TLS-данные Caddy сохраняются в docker volume и переживают перезапуск контейнеров.
-
-## Обновление
-
-После изменения кода на сервере:
-
-```bash
-docker compose up -d --build
-```

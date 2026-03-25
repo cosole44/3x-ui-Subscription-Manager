@@ -164,6 +164,21 @@ docker compose up -d --build
 docker compose down
 ```
 
+### 9. Полное удаление с сервера
+
+Если нужно удалить сервис и все его контейнеры:
+
+```bash
+chmod +x uninstall.sh
+sudo ./uninstall.sh
+```
+
+Если нужно удалить еще и бэкапы:
+
+```bash
+sudo ./uninstall.sh --purge-backups
+```
+
 ## Ручной запуск через Docker Compose
 
 1. Создайте `.env` на основе [.env.example](/Users/oleg/Documents/New%20project/.env.example).

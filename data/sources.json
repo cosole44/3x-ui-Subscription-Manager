@@ -1,0 +1,52 @@
+[
+  {
+    "id": "39ac1d9f-cf97-4db8-812a-bbc271b00128",
+    "name": "Moscow(High)",
+    "domain": "guardport.ru",
+    "port": "2096",
+    "path": "c3Vic2NpcHRpb24=",
+    "createdAt": "2026-03-25T11:09:51.029Z",
+    "updatedAt": "2026-03-25T11:11:23.319Z"
+  },
+  {
+    "id": "33eb25b1-2229-45f6-807b-42c2779dc437",
+    "name": "Netherlands",
+    "domain": "netherlands.guardport.online",
+    "port": "2096",
+    "path": "sub",
+    "createdAt": "2026-03-25T11:10:50.859Z",
+    "updatedAt": "2026-03-25T11:13:14.346Z"
+  },
+  {
+    "id": "3a77f4c9-9bb9-4323-9af1-52758e07c2ea",
+    "name": "Amsterdam",
+    "domain": "amsterdam.guardport.online",
+    "port": "2096",
+    "path": "shajkqkebdSJdyiaoqYWHW",
+    "createdAt": "2026-03-25T11:23:23.470Z"
+  },
+  {
+    "id": "0c5db63c-2733-473d-a8bc-7c58d9afc57f",
+    "name": "German",
+    "domain": "german.guardport.online",
+    "port": "2053",
+    "path": "sub-9sie6wj3wx",
+    "createdAt": "2026-03-25T11:25:21.286Z"
+  },
+  {
+    "id": "1c74e720-892a-4fa3-9f6b-c0710ebcaf34",
+    "name": "Finland",
+    "domain": "finland.guardport.online",
+    "port": "2096",
+    "path": "sub",
+    "createdAt": "2026-03-25T11:26:19.779Z"
+  },
+  {
+    "id": "07637874-5466-4e6d-94d8-f3c3e2add121",
+    "name": "Helsinki",
+    "domain": "helsinki.guardport.ru",
+    "port": "2096",
+    "path": "sub",
+    "createdAt": "2026-03-25T11:27:04.370Z"
+  }
+]

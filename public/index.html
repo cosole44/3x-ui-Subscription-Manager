@@ -5,44 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>3x-ui Subscription Manager</title>
     <link rel="stylesheet" href="/styles.css" />
+    <!-- QRCode.js — генерация QR прямо в браузере, без сторонних сервисов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   </head>
   <body>
     <div class="page-shell">
+
       <header class="hero">
-        <p class="eyebrow">3x-ui Aggregator</p>
-        <h1>Одна подписка вместо набора разрозненных панелей</h1>
-        <p class="hero-copy">
-          Добавьте все серверы 3x-ui, укажите имя клиента и получите единую подписку
-          для импорта в VPN-клиент на телефоне или компьютере.
-        </p>
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">3x-ui Aggregator</p>
+            <h1>Одна подписка вместо набора разрозненных панелей</h1>
+            <p class="hero-copy">
+              Добавьте все серверы 3x-ui, укажите имя клиента и получите единую
+              живую подписку — VPN-клиент сам обновляет конфиги при каждом запросе.
+            </p>
+          </div>
+          <button type="button" class="ghost logout-btn" id="logout-button">Выйти</button>
+        </div>
       </header>
 
       <main class="layout">
+
+        <!-- Добавление / редактирование источника -->
         <section class="card">
           <div class="card-head">
             <h2>Источник подписки</h2>
-            <p>Для каждого сервера сохраняется шаблон ссылки вида `https://domain:port/path/USERNAME`.</p>
+            <p>Шаблон ссылки: <code>https://domain:port/path/USERNAME</code></p>
           </div>
 
           <form id="source-form" class="stack">
             <input type="hidden" id="source-id" />
             <label>
               <span>Название</span>
-              <input id="name" name="name" placeholder="Moscow VPS" required />
+              <input id="name" name="name" placeholder="Moscow VPS" autocomplete="off" required />
             </label>
             <label>
               <span>Домен</span>
-              <input id="domain" name="domain" placeholder="moscow.guardport.ru" required />
+              <input id="domain" name="domain" placeholder="moscow.example.com" autocomplete="off" required />
             </label>
             <label>
               <span>Порт</span>
-              <input id="port" name="port" inputmode="numeric" placeholder="442" required />
+              <input id="port" name="port" inputmode="numeric" placeholder="2096" autocomplete="off" required />
             </label>
             <label>
-              <span>Path / токен</span>
-              <input id="path" name="path" placeholder="0D6c7e56113562d1b86c1db3572c1e23" required />
+              <span>Path / токен подписки</span>
+              <input id="path" name="path" placeholder="sub" autocomplete="off" required />
             </label>
-
             <div class="actions">
               <button type="submit" class="primary" id="save-button">Сохранить сервер</button>
               <button type="button" class="ghost hidden" id="cancel-edit">Отмена</button>
@@ -50,25 +59,32 @@
           </form>
         </section>
 
+        <!-- Сборка подписки -->
         <section class="card">
           <div class="card-head">
             <h2>Итоговая подписка</h2>
-            <p>Введите имя клиента из конца ссылки, например `PC`, и соберите конфиги со всех серверов.</p>
+            <p>
+              Введите имя клиента (например <code>PC</code>). Сервер в реальном
+              времени опросит все источники и вернёт объединённый список конфигов.
+            </p>
           </div>
 
           <form id="aggregate-form" class="stack compact">
             <label>
               <span>Имя клиента</span>
-              <input id="username" name="username" placeholder="PC" required />
+              <input id="username" name="username" placeholder="PC" autocomplete="off" required />
             </label>
-            <button type="submit" class="primary">Собрать подписку</button>
+            <button type="submit" class="primary" id="aggregate-button">Собрать подписку</button>
           </form>
 
           <div id="subscription-panel" class="result hidden">
             <div class="result-grid">
               <div>
-                <p class="result-label">Общая ссылка</p>
-                <a id="subscription-link" href="#" target="_blank" rel="noreferrer"></a>
+                <p class="result-label">Ссылка для VPN-клиента</p>
+                <a id="subscription-link" href="#" target="_blank" rel="noreferrer noopener"></a>
+                <div class="actions" style="margin-top:10px; gap:8px;">
+                  <button type="button" class="ghost small" id="copy-link">Скопировать ссылку</button>
+                </div>
               </div>
               <div>
                 <p class="result-label">Собрано конфигов</p>
@@ -76,33 +92,47 @@
               </div>
             </div>
 
+            <!-- QR-код -->
+            <div class="qr-section">
+              <p class="result-label">QR-код для телефона</p>
+              <div id="qr-container" class="qr-box"></div>
+              <p class="qr-hint">Отсканируйте в v2rayNG / Shadowrocket / Hiddify</p>
+            </div>
+
             <label>
-              <span>Содержимое подписки</span>
-              <textarea id="raw-output" rows="10" readonly></textarea>
+              <span>Содержимое подписки (raw)</span>
+              <textarea id="raw-output" rows="8" readonly aria-label="Конфиги подписки"></textarea>
             </label>
+            <div class="actions" style="margin-top:10px;">
+              <button type="button" class="ghost small" id="copy-raw">Скопировать конфиги</button>
+            </div>
           </div>
         </section>
 
+        <!-- Список серверов -->
         <section class="card wide">
           <div class="card-head">
             <h2>Список серверов</h2>
-            <p>Приложение опрашивает каждый сервер по шаблону и объединяет найденные `vless://` ссылки без дублей.</p>
+            <p>Все источники, которые опрашиваются при каждом обновлении подписки.</p>
           </div>
-
           <div id="sources-list" class="sources-list"></div>
         </section>
 
+        <!-- Статус последней агрегации -->
         <section class="card wide">
           <div class="card-head">
-            <h2>Статус агрегации</h2>
-            <p>Здесь видно, какие сервера ответили и сколько конфигов пришло от каждого источника.</p>
+            <h2>Статус последней сборки</h2>
+            <p>Видно, какие серверы ответили и сколько конфигов пришло от каждого.</p>
           </div>
-
-          <div id="status-list" class="status-list empty">Пока нет данных. Выполните сборку подписки.</div>
+          <div id="status-list" class="status-list empty" role="status">
+            Нет данных. Выполните сборку подписки.
+          </div>
         </section>
+
       </main>
     </div>
 
+    <!-- Шаблоны -->
     <template id="source-item-template">
       <article class="source-item">
         <div>
@@ -111,8 +141,8 @@
           <code class="source-url"></code>
         </div>
         <div class="row-actions">
-          <button class="ghost edit-source">Изменить</button>
-          <button class="danger delete-source">Удалить</button>
+          <button class="ghost edit-source"   type="button">Изменить</button>
+          <button class="danger delete-source" type="button">Удалить</button>
         </div>
       </article>
     </template>

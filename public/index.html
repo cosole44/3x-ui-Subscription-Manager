@@ -7,15 +7,6 @@
     <link rel="stylesheet" href="/styles.css" />
     <!-- QRCode.js — генерация QR прямо в браузере, без сторонних сервисов -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script>
-  // Инициализация темы ДО отрисовки страницы
-  (function() {
-    const savedTheme = localStorage.getItem('theme');
-    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = (savedTheme === 'dark' || (!savedTheme && systemDark)) ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-  })();
-</script>
   </head>
   <body>
     <div class="page-shell">
@@ -29,11 +20,6 @@
               Добавьте все серверы 3x-ui, укажите имя клиента и получите единую
               живую подписку — VPN-клиент сам обновляет конфиги при каждом запросе.
             </p>
-          
-          <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Сменить тему">
-             <span class="icon-sun">☀️</span>
-             <span class="icon-moon">🌙</span>
-           </button>
           </div>
           <button type="button" class="ghost logout-btn" id="logout-button">Выйти</button>
         </div>

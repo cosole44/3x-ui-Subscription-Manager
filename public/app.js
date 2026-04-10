@@ -20,14 +20,6 @@ const statusList        = document.getElementById("status-list");
 const logoutButton      = document.getElementById("logout-button");
 const sourceTemplate    = document.getElementById("source-item-template");
 const statusTemplate    = document.getElementById("status-item-template");
-const themeToggle = document.getElementById('theme-toggle');
-
-themeToggle.addEventListener('click', () => {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-});
 
 let sources  = [];
 let subToken = "";

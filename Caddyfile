@@ -2,18 +2,17 @@
 # Для локального использования замените на `tls internal`.
 
 {$DOMAIN} {
-	encode gzip zstd
+    encode gzip zstd
 
-	header {
-		X-Content-Type-Options nosniff
-		X-Frame-Options SAMEORIGIN
-		Referrer-Policy strict-origin-when-cross-origin
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		# Запрет встраивания стороннего контента
-		Content-Security-Policy "default-src 'self'"
-		# Убираем заголовок сервера
-		-Server
-	}
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        -Server
+    }
 
-	reverse_proxy app:3000
+    tls /certs/netherlands.guardport.online/fullchain.pem /certs/netherlands.guardport.online/privkey.pem
+
+    reverse_proxy app:3000
 }

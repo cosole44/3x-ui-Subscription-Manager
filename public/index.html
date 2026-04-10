@@ -12,9 +12,8 @@
   (function() {
     const savedTheme = localStorage.getItem('theme');
     const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
+    const theme = (savedTheme === 'dark' || (!savedTheme && systemDark)) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
   })();
 </script>
   </head>

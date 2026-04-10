@@ -7,13 +7,14 @@ services:
       dockerfile: Dockerfile
     container_name: 3xui-subscription-manager-app
     restart: unless-stopped
+    env_file: .env          # все секреты — в .env, не в этом файле
     environment:
       HOST: 0.0.0.0
       PORT: 3000
     volumes:
       - ./data:/app/data
     networks:
-      - web
+      - internal
 
   caddy:
     image: caddy:2.10.0
@@ -24,16 +25,18 @@ services:
     environment:
       DOMAIN: ${DOMAIN}
     ports:
-      - "3000:3000"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
-      - web
+      - internal
 
 networks:
-  web:
+  internal:
     driver: bridge
 
 volumes:

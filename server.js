@@ -347,6 +347,15 @@ async function serveLogin(error = "") {
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Вход — 3x-ui Manager</title>
   <link rel="stylesheet" href="/styles.css"/>
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme');
+      const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && sysDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 </head>
 <body class="login-page">
   <div class="login-card">
@@ -365,6 +374,21 @@ async function serveLogin(error = "") {
       <button type="submit" class="primary">Войти</button>
     </form>
   </div>
+
+  <!-- Кнопка переключения темы (фиксированная, нижний правый угол) -->
+  <button type="button" class="theme-toggle login-theme-toggle" id="login-theme-toggle" aria-label="Сменить тему">
+    <span class="icon-sun">☀️</span>
+    <span class="icon-moon">🌙</span>
+  </button>
+
+  <script>
+    document.getElementById('login-theme-toggle').addEventListener('click', function() {
+      var current = document.documentElement.getAttribute('data-theme');
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+  </script>
 </body>
 </html>`;
   return new Response(html, {
